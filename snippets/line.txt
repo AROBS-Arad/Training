@@ -1,0 +1,84 @@
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+#include <vector>
+#include <cmath>
+#include <iostream>
+
+const int WIDTH = 800;
+const int HEIGHT = 600;
+const float PI = 3.14159265358979323846;
+const float MOVEMENT_SPEED = 0.5f; // Speed at which the line moves
+
+std::vector<float> generateEKGData(int numPoints, float offset) {
+    std::vector<float> data(numPoints);
+    float frequency = 2.0f; // Adjust frequency for EKG wave pattern
+    float amplitude = 1.0f;
+    
+    for (int i = 0; i < numPoints; ++i) {
+        float t = (i / static_cast<float>(numPoints) + offset) * 2.0f * PI * frequency;
+        data[i] = amplitude * (std::sin(t) + std::sin(3 * t) / 3.0f - std::sin(5 * t) / 5.0f);
+    }
+    
+    return data;
+}
+
+void renderEKGLine(const std::vector<float>& data) {
+    glBegin(GL_LINE_STRIP);
+    for (size_t i = 0; i < data.size(); ++i) {
+        float x = (i / static_cast<float>(data.size())) * 2.0f - 1.0f; // Normalize to [-1, 1]
+        float y = data[i];
+        glVertex2f(x, y);
+    }
+    glEnd();
+}
+
+int main() {
+    if (!glfwInit()) {
+        std::cerr << "Failed to initialize GLFW" << std::endl;
+        return -1;
+    }
+
+    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Moving EKG Line", NULL, NULL);
+    if (!window) {
+        std::cerr << "Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+        return -1;
+    }
+
+    glfwMakeContextCurrent(window);
+
+    // Initialize GLAD
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        std::cerr << "Failed to initialize GLAD" << std::endl;
+        return -1;
+    }
+
+    glOrtho(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0); // Set orthographic projection
+
+    int numPoints = 1000;
+    float offset = 0.0f;
+
+    while (!glfwWindowShouldClose(window)) {
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        // Generate EKG data with current offset
+        std::vector<float> ekgData = generateEKGData(numPoints, offset);
+
+        // Render EKG line
+        glLoadIdentity();
+        renderEKGLine(ekgData);
+
+        // Update offset to create movement effect
+        offset -= MOVEMENT_SPEED / numPoints;
+        if (offset < -1.0f) {
+            offset = 0.0f;
+        }
+
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+
+    glfwDestroyWindow(window);
+    glfwTerminate();
+    return 0;
+}
